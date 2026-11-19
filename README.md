@@ -54,3 +54,7 @@ and can be lost on amend/rebase.
 
 The identification is self-reported: a model can misstate its own ID or
 confidence if it is instructed to do so.
+
+## License
+
+Apache License 2.0 - see [LICENSE](LICENSE) for details. Copyright 2026 Senthil Kumaran.
