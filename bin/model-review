@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# model-review list [range]           show commits with self-ID and review status
+# model-review comment <sha> <text>   add reviewer comment, mark reviewed
+set -e
+case "${1:-list}" in
+  list)
+    shift || true
+    git log --notes=model-id --format='=== %h %s%n%N' "${@:-HEAD}" ;;
+  comment)
+    sha=$(git rev-parse --verify "$2^{commit}"); text="${3:-}"
+    [ -n "$text" ] || { echo "usage: model-review comment <sha> <text>" >&2; exit 2; }
+    printf '%s\n' "$text" | git notes --ref=model-review append -F - "$sha"
+    old=$(git notes --ref=model-id show "$sha" 2>/dev/null | grep -v '^Review-Status:' || true)
+    printf '%s\nReview-Status: reviewed\n' "$old" | git notes --ref=model-id add -f -F - "$sha" ;;
+  *) echo "usage: model-review list|comment" >&2; exit 2 ;;
+esac

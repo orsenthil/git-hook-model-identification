@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# commit-msg: require a one-line model self-identification trailer (see SPEC.md).
+#   Model: <id> harness=<h> effort=<e> conf=<high|medium|low>
+# Skip with GIT_HUMAN_COMMIT=1. Merges, reverts, fixup!/squash! are exempt.
+msg_file="$1"
+
+[ "${GIT_HUMAN_COMMIT:-}" = "1" ] && exit 0
+git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1 && exit 0
+subject=$(grep -v '^#' "$msg_file" | head -n1)
+case "$subject" in Merge\ *|Revert\ *|fixup!*|squash!*) exit 0 ;; esac
+
+trailers=$(git interpret-trailers --parse --no-divider < "$msg_file")
+model=$(printf '%s\n' "$trailers" | sed -n 's/^Model:[[:space:]]*//Ip' | tail -n1)
+problems=()
+
+if [ -z "$model" ]; then
+  problems+=("Model trailer missing")
+else
+  id=${model%% *}
+  printf '%s' "$id" | grep -Eiq '^(unknown|n/?a|none|ai|assistant|llm|<.*>)$|=' \
+    && problems+=("Model: first token must be your exact model ID, not a placeholder")
+  for k in harness effort; do
+    printf '%s' " $model " | grep -Eq " $k=[^ =]+ " || problems+=("Model: missing $k=<value>")
+  done
+  printf '%s' " $model " | grep -Eq ' conf=(high|medium|low) ' \
+    || problems+=("Model: conf must be high, medium or low")
+fi
+
+[ ${#problems[@]} -eq 0 ] && exit 0
+
+cat >&2 <<MSG
+
+COMMIT REJECTED: missing model self-identification.
+
+You (the AI model making this commit) must identify yourself so a higher-level
+model can review this commit later. Append this trailer after a blank line at
+the END of the commit message, then retry the commit. Use your own exact model
+ID; be honest about your confidence.
+
+  Model: <exact-model-id> harness=<tool> effort=<level> conf=<high|medium|low>
+
+Example:
+  Model: claude-sonnet-5-5 harness=claude-code effort=high conf=medium
+
+Problems found:
+MSG
+printf '  - %s\n' "${problems[@]}" >&2
+echo >&2
+echo "(Human committing by hand? Re-run with GIT_HUMAN_COMMIT=1.)" >&2
+exit 1

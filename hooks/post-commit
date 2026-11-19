@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# post-commit: index the Model trailer as a git note (ref: model-id).
+trailer=$(git log -1 --format=%B HEAD | git interpret-trailers --parse --no-divider \
+  | grep -Ei '^Model:' | tail -n1 || true)
+[ -z "$trailer" ] && exit 0
+printf '%s\nReview-Status: pending\n' "$trailer" \
+  | git notes --ref=model-id add -f -F - HEAD >/dev/null 2>&1 || true
