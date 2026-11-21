@@ -1,8 +1,8 @@
 # Model Identification hook for Git Commits
 
-It is desirable to have model and model properties identification in git
-commits authored by AI models. This repository provides a git hook that
-enforces a commit message format and a review workflow. 
+It is desirable to have model identification in git commits authored by AI models. 
+
+It will be done with a git hook that enforces a commit message format and a review workflow. 
 
 Every AI-authored commit carries a one-line self-identification, so a stronger
 model can review it later and know who wrote it and how sure they were.
